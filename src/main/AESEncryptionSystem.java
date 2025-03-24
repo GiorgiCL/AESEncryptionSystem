@@ -12,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+// Your import statements remain the same
+
 public class AESEncryptionSystem extends JFrame {
     private JTextField plaintextField;
     private JTextField keyField;
@@ -30,7 +32,6 @@ public class AESEncryptionSystem extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Input Panel
         JPanel inputPanel = new JPanel(new GridLayout(3, 2));
         inputPanel.add(new JLabel("Plaintext:"));
         plaintextField = new JTextField();
@@ -42,7 +43,6 @@ public class AESEncryptionSystem extends JFrame {
         modeComboBox = new JComboBox<>(new String[]{"ECB", "CBC", "CFB"});
         inputPanel.add(modeComboBox);
 
-        // Button Panel
         JPanel buttonPanel = new JPanel(new FlowLayout());
         encryptButton = new JButton("Encrypt");
         decryptButton = new JButton("Decrypt");
@@ -53,7 +53,6 @@ public class AESEncryptionSystem extends JFrame {
         buttonPanel.add(saveButton);
         buttonPanel.add(loadButton);
 
-        // Result Area
         resultArea = new JTextArea();
         resultArea.setEditable(false);
         resultArea.setLineWrap(true);
@@ -61,12 +60,10 @@ public class AESEncryptionSystem extends JFrame {
         resultArea.setPreferredSize(new Dimension(450, 150));
         JScrollPane scrollPane = new JScrollPane(resultArea);
 
-        // Add components to frame
         add(inputPanel, BorderLayout.NORTH);
         add(buttonPanel, BorderLayout.CENTER);
         add(scrollPane, BorderLayout.SOUTH);
 
-        // Add action listeners
         encryptButton.addActionListener(e -> encryptAction());
         decryptButton.addActionListener(e -> decryptAction());
         saveButton.addActionListener(e -> saveAction());
@@ -81,7 +78,7 @@ public class AESEncryptionSystem extends JFrame {
                 throw new Exception("Key must be 16, 24, or 32 characters long.");
             }
             String mode = (String) modeComboBox.getSelectedItem();
-            encryptedText = encrypt(plaintext, key, mode); // Store the encrypted text
+            encryptedText = encrypt(plaintext, key, mode); // Store encrypted text
             resultArea.setText("Encrypted: " + encryptedText);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(null, "Error during encryption: " + ex.getMessage());
@@ -90,13 +87,16 @@ public class AESEncryptionSystem extends JFrame {
 
     private void decryptAction() {
         try {
-            String ciphertext = resultArea.getText().replace("Encrypted: ", "");
+            if (encryptedText == null || encryptedText.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "No encrypted text available. Encrypt or load a file first.");
+                return;
+            }
             String key = keyField.getText();
             if (key.length() != 16 && key.length() != 24 && key.length() != 32) {
                 throw new Exception("Key must be 16, 24, or 32 characters long.");
             }
             String mode = (String) modeComboBox.getSelectedItem();
-            String decryptedText = decrypt(ciphertext, key, mode);
+            String decryptedText = decrypt(encryptedText, key, mode);
             resultArea.setText("Decrypted: " + decryptedText);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(null, "Error during decryption: " + ex.getMessage());
@@ -132,13 +132,8 @@ public class AESEncryptionSystem extends JFrame {
                         JOptionPane.showMessageDialog(null, "File is empty or invalid.");
                         return;
                     }
-                    String key = keyField.getText();
-                    if (key.length() != 16 && key.length() != 24 && key.length() != 32) {
-                        throw new Exception("Key must be 16, 24, or 32 characters long.");
-                    }
-                    String mode = (String) modeComboBox.getSelectedItem();
-                    String decryptedText = decrypt(ciphertext, key, mode);
-                    resultArea.setText("Decrypted: " + decryptedText);
+                    encryptedText = ciphertext; 
+                    resultArea.setText("Encrypted (loaded): " + encryptedText);
                 }
             }
         } catch (Exception ex) {
@@ -151,11 +146,10 @@ public class AESEncryptionSystem extends JFrame {
         Cipher cipher = Cipher.getInstance("AES/" + mode + "/PKCS5Padding");
         if (mode.equals("CBC") || mode.equals("CFB")) {
             byte[] iv = new byte[16];
-            new SecureRandom().nextBytes(iv); // Generate a random IV
+            new SecureRandom().nextBytes(iv);
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
             byte[] encryptedBytes = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
-            // Prepend IV to the encrypted data
             byte[] combined = new byte[iv.length + encryptedBytes.length];
             System.arraycopy(iv, 0, combined, 0, iv.length);
             System.arraycopy(encryptedBytes, 0, combined, iv.length, encryptedBytes.length);
@@ -173,7 +167,7 @@ public class AESEncryptionSystem extends JFrame {
         byte[] decoded = Base64.getDecoder().decode(ciphertext);
         if (mode.equals("CBC") || mode.equals("CFB")) {
             byte[] iv = new byte[16];
-            System.arraycopy(decoded, 0, iv, 0, iv.length); // Extract IV
+            System.arraycopy(decoded, 0, iv, 0, iv.length);
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
             cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec);
             byte[] encryptedBytes = new byte[decoded.length - iv.length];
